@@ -1,0 +1,55 @@
+# Esqueleto de CI (GitHub Actions). Um job por check — cada um vira um
+# "required status check" na branch protection de main.
+# Adapte runtime/comandos à stack. Exemplo em Node.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm test -- --coverage
+
+  test-e2e:
+    runs-on: ubuntu-latest   # Docker disponível para Testcontainers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm run test:e2e
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm run build
+
+  # Deploy: só em push para main, depois de todos os checks.
+  # Garanta que migrations rodem no boot/deploy e que o health check
+  # reflita capacidade real de servir (ver 09-armadilhas §10).
+  # deploy:
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   needs: [lint, test, test-e2e, build]
+  #   runs-on: ubuntu-latest
+  #   steps: [...]
